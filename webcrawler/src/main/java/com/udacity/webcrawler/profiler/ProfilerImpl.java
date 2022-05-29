@@ -3,6 +3,10 @@ package com.udacity.webcrawler.profiler;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.io.Writer;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.ZonedDateTime;
@@ -28,18 +32,25 @@ final class ProfilerImpl implements Profiler {
   @Override
   public <T> T wrap(Class<T> klass, T delegate) {
     Objects.requireNonNull(klass);
-
     // TODO: Use a dynamic proxy (java.lang.reflect.Proxy) to "wrap" the delegate in a
     //       ProfilingMethodInterceptor and return a dynamic proxy from this method.
     //       See https://docs.oracle.com/javase/10/docs/api/java/lang/reflect/Proxy.html.
+    Method[] methods = klass.getDeclaredMethods();
 
-    return delegate;
+    ProfilingMethodInterceptor profilingMethodInterceptor = new ProfilingMethodInterceptor(clock, delegate, state);
+    return (T) Proxy.newProxyInstance(klass.getClassLoader(), klass.getInterfaces(), profilingMethodInterceptor);
   }
 
   @Override
-  public void writeData(Path path) {
+  public void writeData(Path path) throws IOException {
     // TODO: Write the ProfilingState data to the given file path. If a file already exists at that
     //       path, the new data should be appended to the existing file.
+    if (Files.notExists(path)) {
+      Files.createFile(path);
+    }
+    Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8);
+    writeData(writer);
+    writer.flush();
   }
 
   @Override
