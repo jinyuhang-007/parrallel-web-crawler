@@ -12,6 +12,7 @@ Q1. Run the web crawler using the configurations located at src/main/config/writ
     Why did the parser take more time when run with ParallelWebCrawler?
 
 
+
 Q2. Your manager ran your crawler on her old personal computer, using the configurations from Q1, and she notices that
     the sequential crawler actually outperforms the parallel crawler. She would like to know why.
 

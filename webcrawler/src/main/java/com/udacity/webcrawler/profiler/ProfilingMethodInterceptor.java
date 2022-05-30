@@ -15,29 +15,35 @@ import java.util.Objects;
 final class ProfilingMethodInterceptor implements InvocationHandler {
 
   private final Clock clock;
-  private final Object target;
-  private final ProfilingState state;
+  private final ProfilingState profilingState;
+  private final Object delegate;
 
-
-  // TODO: You will need to add more instance fields and constructor arguments to this class.
-  ProfilingMethodInterceptor(Clock clock, Object target, ProfilingState state) {
+  ProfilingMethodInterceptor(Clock clock, Object delegate, ProfilingState state) {
     this.clock = Objects.requireNonNull(clock);
-    this.target = target;
-    this.state = state;
+    this.delegate = delegate;
+    this.profilingState = state;
   }
 
   @Override
-  public Object invoke(Object proxy, Method method, Object[] args) throws InvocationTargetException, IllegalAccessException {
+  public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     // TODO: This method interceptor should inspect the called method to see if it is a profiled
     //       method. For profiled methods, the interceptor should record the start time, then
     //       invoke the method using the object that is being profiled. Finally, for profiled
     //       methods, the interceptor should record how long the method call took, using the
     //       ProfilingState methods.
     Instant start = clock.instant();
-    Object result = method.invoke(target, args);
-    Instant end = clock.instant();
-    Duration duration = Duration.between(start, end);
-    state.record(target.getClass(), method, duration);
-    return result;
+    Object res;
+    try {
+      res = method.invoke(delegate, args);
+    } catch (InvocationTargetException ex) {
+      throw ex.getTargetException();
+    } finally {
+      if (start != null) {
+        Instant end = clock.instant();
+        Duration duration = Duration.between(start, end);
+        profilingState.record(delegate.getClass(), method, duration);
+      }
+    }
+    return res;
   }
 }

@@ -3,6 +3,7 @@ package com.udacity.webcrawler.profiler;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.io.Writer;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
@@ -10,6 +11,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 import static java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME;
@@ -29,29 +33,37 @@ final class ProfilerImpl implements Profiler {
     this.startTime = ZonedDateTime.now(clock);
   }
 
+
+  private Boolean isClassProfiled(Class<?> klass) {
+    List<Method> methods = new ArrayList<>(Arrays.asList(klass.getDeclaredMethods()));
+    if (methods.isEmpty()) {
+      return false;
+    }
+    return methods.stream().anyMatch(x -> x.getAnnotation(Profiled.class) != null);
+  }
+
   @Override
   public <T> T wrap(Class<T> klass, T delegate) {
     Objects.requireNonNull(klass);
-    // TODO: Use a dynamic proxy (java.lang.reflect.Proxy) to "wrap" the delegate in a
-    //       ProfilingMethodInterceptor and return a dynamic proxy from this method.
-    //       See https://docs.oracle.com/javase/10/docs/api/java/lang/reflect/Proxy.html.
-    Method[] methods = klass.getDeclaredMethods();
-
+    //  TODO: Use a dynamic proxy (java.lang.reflect.Proxy) to "wrap" the delegate in a
+    //        ProfilingMethodInterceptor and return a dynamic proxy from this method.
+    //        See https://docs.oracle.com/javase/10/docs/api/java/lang/reflect/Proxy.html.
+    if (!isClassProfiled(klass)) {
+      throw new IllegalArgumentException(klass.getName() + "doesn't have profiled methods.");
+    }
     ProfilingMethodInterceptor profilingMethodInterceptor = new ProfilingMethodInterceptor(clock, delegate, state);
-    return (T) Proxy.newProxyInstance(klass.getClassLoader(), klass.getInterfaces(), profilingMethodInterceptor);
+    return (T) Proxy.newProxyInstance(klass.getClassLoader(), new Class[]{klass}, profilingMethodInterceptor);
   }
 
   @Override
   public void writeData(Path path) throws IOException {
     // TODO: Write the ProfilingState data to the given file path. If a file already exists at that
     //       path, the new data should be appended to the existing file.
-    if (Files.notExists(path)) {
-      Files.createFile(path);
-    }
     Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8);
     writeData(writer);
     writer.flush();
   }
+
 
   @Override
   public void writeData(Writer writer) throws IOException {
@@ -59,5 +71,18 @@ final class ProfilerImpl implements Profiler {
     writer.write(System.lineSeparator());
     state.write(writer);
     writer.write(System.lineSeparator());
+  }
+
+  private boolean checkProfilerHasAnnotation(Class<?> klass) {
+    Method methodArr[] = klass.getDeclaredMethods();
+    if (methodArr == null || methodArr.length == 0) {
+      return false;
+    }
+    for (Method method : methodArr) {
+      if (method.getAnnotation(Profiled.class) != null) {
+        return true;
+      }
+    }
+    return false;
   }
 }
