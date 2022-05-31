@@ -73,16 +73,4 @@ final class ProfilerImpl implements Profiler {
     writer.write(System.lineSeparator());
   }
 
-  private boolean checkProfilerHasAnnotation(Class<?> klass) {
-    Method methodArr[] = klass.getDeclaredMethods();
-    if (methodArr == null || methodArr.length == 0) {
-      return false;
-    }
-    for (Method method : methodArr) {
-      if (method.getAnnotation(Profiled.class) != null) {
-        return true;
-      }
-    }
-    return false;
-  }
 }
