@@ -33,8 +33,9 @@ public final class ConfigurationLoader {
    */
   public CrawlerConfiguration load() throws IOException {
     // TODO: Fill in this method.
-    Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8);
-    return read(reader);
+    try(Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)){
+      return read(reader);
+    }
 
   }
 
