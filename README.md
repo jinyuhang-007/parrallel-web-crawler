@@ -1,3 +1,2 @@
-# Purpose of this Folder
+# Parrallel-web-crawler
 
-This folder contains the scaffolded project files to get a student started on their project.
